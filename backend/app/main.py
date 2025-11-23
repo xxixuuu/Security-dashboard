@@ -162,13 +162,13 @@ async def shutdown_event():
 
 
 # =============================================================================
-# API Routers (to be added)
+# API Routers
 # =============================================================================
 
-# from app.api import auth, users, repositories, scans, vulnerabilities, notifications
-# app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
-# app.include_router(users.router, prefix="/api/users", tags=["users"])
-# app.include_router(repositories.router, prefix="/api/repositories", tags=["repositories"])
-# app.include_router(scans.router, prefix="/api/scans", tags=["scans"])
-# app.include_router(vulnerabilities.router, prefix="/api/vulnerabilities", tags=["vulnerabilities"])
-# app.include_router(notifications.router, prefix="/api/notifications", tags=["notifications"])
+from app.api import auth, users, repositories, scans, vulnerabilities
+
+app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(repositories.router, prefix="/api/repositories", tags=["repositories"])
+app.include_router(scans.router, prefix="/api/scans", tags=["scans"])
+app.include_router(vulnerabilities.router, prefix="/api/vulnerabilities", tags=["vulnerabilities"])
