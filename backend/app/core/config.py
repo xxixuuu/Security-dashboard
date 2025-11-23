@@ -99,6 +99,7 @@ class Settings(BaseSettings):
     # GitLab
     GITLAB_TOKEN: Optional[str] = None
     GITLAB_URL: str = "https://gitlab.com"
+    GITLAB_WEBHOOK_SECRET: Optional[str] = None
 
     # Ollama
     OLLAMA_HOST: str = "http://ollama:11434"

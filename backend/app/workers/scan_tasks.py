@@ -120,6 +120,16 @@ def run_security_scan(self, scan_id: str):
 
             logger.info(f"Scan completed successfully: {scan_id} - Found {scan.total_vulnerabilities} vulnerabilities")
 
+            # Trigger AI analysis if vulnerabilities were found
+            if scan.total_vulnerabilities > 0:
+                from app.workers.ollama_tasks import generate_vulnerability_summaries
+                generate_vulnerability_summaries.delay(scan_id)
+                logger.info(f"Triggered AI analysis for scan: {scan_id}")
+
+            # Send notification
+            from app.workers.notification_tasks import send_scan_notification
+            send_scan_notification.delay(scan_id)
+
             return {
                 "status": "completed",
                 "scan_id": scan_id,

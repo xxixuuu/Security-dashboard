@@ -32,8 +32,11 @@ class DatabaseTask(Task):
 @celery_app.task(base=DatabaseTask, bind=True)
 def send_scan_notification(self, scan_id: str):
     """Send notification when scan completes"""
+    import asyncio
     from app.models.scan import Scan, ScanStatus
     from app.models.repository import Repository
+    from app.models.user import User
+    from app.services.notification_service import notification_service
 
     logger.info(f"Sending scan notification for scan: {scan_id}")
 
@@ -47,23 +50,27 @@ def send_scan_notification(self, scan_id: str):
         logger.error(f"Repository not found for scan: {scan_id}")
         return
 
-    # Prepare notification message
-    if scan.status == ScanStatus.COMPLETED:
-        title = f"Scan Completed: {repository.full_name}"
-        message = f"Found {scan.total_vulnerabilities} vulnerabilities"
+    # Get repository owner
+    owner = self.db.query(User).filter(User.id == repository.owner_id).first()
+    user_email = owner.email if owner else None
 
-        if scan.critical_count > 0:
-            message += f" ({scan.critical_count} critical)"
+    # Send notifications based on scan status
+    if scan.status == ScanStatus.COMPLETED:
+        asyncio.run(notification_service.notify_scan_completed(
+            repository_name=repository.full_name,
+            scan_id=str(scan_id),
+            total_vulnerabilities=scan.total_vulnerabilities,
+            critical_count=scan.critical_count,
+            high_count=scan.high_count,
+            medium_count=scan.medium_count,
+            user_email=user_email
+        ))
+
+        logger.info(f"Scan completion notification sent for: {scan_id}")
 
     elif scan.status == ScanStatus.FAILED:
-        title = f"Scan Failed: {repository.full_name}"
-        message = f"Error: {scan.error_message}"
-
-    else:
-        return  # Don't send notification for other statuses
-
-    # TODO: Send to configured notification channels
-    logger.info(f"Notification: {title} - {message}")
+        # TODO: Send failure notification
+        logger.info(f"Scan failed notification: {repository.full_name} - {scan.error_message}")
 
 
 @celery_app.task(base=DatabaseTask, bind=True)

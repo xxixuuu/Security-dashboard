@@ -165,10 +165,12 @@ async def shutdown_event():
 # API Routers
 # =============================================================================
 
-from app.api import auth, users, repositories, scans, vulnerabilities
+from app.api import auth, users, repositories, scans, vulnerabilities, ollama, webhooks
 
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(repositories.router, prefix="/api/repositories", tags=["repositories"])
 app.include_router(scans.router, prefix="/api/scans", tags=["scans"])
 app.include_router(vulnerabilities.router, prefix="/api/vulnerabilities", tags=["vulnerabilities"])
+app.include_router(ollama.router, prefix="/api/ollama", tags=["ollama"])
+app.include_router(webhooks.router, prefix="/api/webhooks", tags=["webhooks"])
