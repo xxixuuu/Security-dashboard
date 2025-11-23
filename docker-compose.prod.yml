@@ -1,0 +1,106 @@
+version: '3.8'
+
+# Production override for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Must be set in production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - RELOAD=false
+    command: >
+      sh -c "alembic upgrade head &&
+             gunicorn app.main:app
+             --workers 4
+             --worker-class uvicorn.workers.UvicornWorker
+             --bind 0.0.0.0:8000
+             --timeout 120
+             --access-logfile -
+             --error-logfile -"
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  celery_worker:
+    environment:
+      - ENVIRONMENT=production
+    command: celery -A app.workers.celery_app worker --loglevel=warning --concurrency=8 --max-tasks-per-child=1000
+    restart: always
+    deploy:
+      replicas: 2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  celery_beat:
+    environment:
+      - ENVIRONMENT=production
+    command: celery -A app.workers.celery_app beat --loglevel=warning
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend.prod
+    environment:
+      - NODE_ENV=production
+    command: npm start
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx:
+    volumes:
+      - ./docker/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro  # SSL certificates
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ollama_data:
+    driver: local
+  scan_results:
+    driver: local
+  temp_repos:
+    driver: local
